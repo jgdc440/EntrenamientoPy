@@ -280,7 +280,7 @@ class MenuRegistro:
                 pass
             else:
                 print('\nEl curso ', codigo_curso, 'ya está asignado el ', dia_curso,
-                      'en el turno' , turno)
+                      'en el turno' , turno_curso)
 
 
     def registrar_profesor_horario(self):
