@@ -40,7 +40,7 @@ class Alumno(Base):
     firstname = Column(String)
     lastname = Column(String)
 
-    #Relación uno a uno con el alumno-curso
+    # Relación uno a uno con el alumno-curso
     r_curso = relationship("CursoAlumno", uselist=False, back_populates="r_alumno",
                            cascade="all, delete")
 
@@ -54,9 +54,13 @@ class CursoAlumno(Base):
     code_personal = Column(String)
     code_curso = Column(String)
 
-    # Relación uno a uno con el alumno-curso
+    # Relación uno a uno con el alumno
     alumno_id = Column(Integer, ForeignKey('alumno.id'))
-    r_alumno = relationship("Alumno", back_populates="r_curso", cascade="all, delete")
+    r_alumno = relationship("Alumno", back_populates="r_curso")
+
+    # Relación uno a uno con el curso
+    curso_id = Column(Integer, ForeignKey('cursos.id', ondelete="CASCADE"))
+    r_cursos = relationship("Cursos", back_populates="r_alumnocurso")
 
     def __rep__(self):
         return "{}{}".format(self.code_personal, self.code_curso)
@@ -68,9 +72,13 @@ class ProfesorCurso(Base):
     code_personal = Column(String)
     code_curso = Column(String)
 
-    # Relación uno a uno con el profesor-curso
+    # Relación uno a uno con el profesor
     profesor_id = Column(Integer, ForeignKey('profesor.id'))
-    r_profesor = relationship("Profesor", back_populates="r_curso", cascade="all, delete")
+    r_profesor = relationship("Profesor", back_populates="r_curso")
+
+    # Relación uno a uno con el curso
+    curso_id = Column(Integer, ForeignKey('cursos.id', ondelete="CASCADE"))
+    r_cursos = relationship("Cursos", back_populates="r_profesorcurso")
 
     def __rep__(self):
         return "{}{}".format(self.code_personal, self.code_curso)
@@ -88,6 +96,14 @@ class Cursos(Base):
     horarios_cursos = relationship('HorarioCurso', secondary=horario_curso,
                                    back_populates='horarios', cascade="all, delete")
 
+    # Relación muchos a uno con el alumno-curso
+    r_alumnocurso = relationship("CursoAlumno", back_populates="r_cursos",
+                                 cascade="all, delete")
+
+    # Relación muchos a uno con el profesor-curso
+    r_profesorcurso = relationship("ProfesorCurso", back_populates="r_cursos",
+                                   cascade="all, delete")
+
     def __rep__(self):
         return "{}{}".format(self.code, self.name,
                              self.descrip, self.cpe)
@@ -96,9 +112,9 @@ class Cursos(Base):
 class HorarioCurso(Base):
     __tablename__ = 'horariocursos'
     id = Column(Integer, Sequence('horario_curso_id_seq'), primary_key=True)
-    code_curso=Column(Integer)
-    dia=Column(Integer)
-    turno=Column(Integer)
+    code_curso = Column(Integer)
+    dia = Column(Integer)
+    turno = Column(Integer)
 
     horarios = relationship('Cursos', secondary=horario_curso,
                             back_populates='horarios_cursos')
@@ -107,12 +123,12 @@ class HorarioCurso(Base):
         return "{}".format(self.name)
 
 
-
 engine = create_engine('sqlite:///escuela.db')
-#engine = create_engine('sqlite:///:memory:')
+# engine = create_engine('sqlite:///:memory:')
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 session = Session()
+
 
 class MenuPrincipal:
     def __init__(self):
@@ -227,7 +243,7 @@ class MenuRegistro:
             v_descrip = input('\nDescripción del curso: ')
             v_cpe = input('\nCantidad de créditos: ')
             v_curso = Cursos(code=v_codigo, name=v_name,
-                            descrip=v_descrip, cpe=v_cpe)
+                             descrip=v_descrip, cpe=v_cpe)
             session.add(v_curso)
             session.commit()
         else:
@@ -245,11 +261,11 @@ class MenuRegistro:
             if v_alumno is None:
                 print('\nAlumno', codigo_personal, 'no existe en la base de datos')
             else:
-                v_curso = session.query(CursoAlumno).filter_by(code_curso=codigo_curso)\
+                v_curso = session.query(CursoAlumno).filter_by(code_curso=codigo_curso) \
                     .filter_by(code_personal=codigo_personal).all()
                 if not v_curso:
                     v_curso = CursoAlumno(code_curso=codigo_curso, code_personal=codigo_personal,
-                                    alumno_id=v_alumno.id)
+                                          alumno_id=v_alumno.id, curso_id=x.id)
                     session.add(v_curso)
                     session.commit()
                 else:
@@ -267,11 +283,11 @@ class MenuRegistro:
             if v_profesor is None:
                 print('\nProfesor', codigo_personal, 'no existe en la base de datos')
             else:
-                v_curso = session.query(ProfesorCurso).filter_by(code_curso=codigo_curso)\
+                v_curso = session.query(ProfesorCurso).filter_by(code_curso=codigo_curso) \
                     .filter_by(code_personal=codigo_personal).all()
                 if not v_curso:
                     v_curso = ProfesorCurso(code_curso=codigo_curso, code_personal=codigo_personal,
-                                    profesor_id=v_profesor.id)
+                                            profesor_id=v_profesor.id, curso_id=x.id)
                     session.add(v_curso)
                     session.commit()
                 else:
@@ -286,8 +302,8 @@ class MenuRegistro:
         else:
             dia_curso = input('\nIndique el día de la semana que desea asignar el curso: ')
             turno_curso = input('\n Indique el turno que desea asignar al curso (AM/PM): ')
-            h_curso = session.query(HorarioCurso).filter_by(code_curso=codigo_curso)\
-                .filter_by(dia=dia_curso)\
+            h_curso = session.query(HorarioCurso).filter_by(code_curso=codigo_curso) \
+                .filter_by(dia=dia_curso) \
                 .filter_by(turno=turno_curso).all()
             if not h_curso:
                 x.horarios_cursos.append(HorarioCurso(code_curso=codigo_curso,
@@ -295,7 +311,7 @@ class MenuRegistro:
                 session.commit()
             else:
                 print('\nEl curso ', codigo_curso, 'ya está asignado el ', dia_curso,
-                      'en el turno' , turno_curso)
+                      'en el turno ', turno_curso)
 
     def regresar(self):
         m.run()
@@ -339,16 +355,16 @@ class MenuConsulta:
             print('\nAlumno no está registrado en la base de datos')
         else:
             code = x.id
-            x = session.query(Curso).filter_by(id=code).first()
+            x = session.query(Cursos).filter_by(id=code).first()
             if x is None:
                 print('\nAlumno no se encuentra asignado a ningún programa')
             else:
                 code = x.id
-                for an_alumno, a_prg in session.query(Alumno, Curso). \
+                for an_alumno, a_prg in session.query(Alumno, Cursos). \
                         filter(Alumno.id == Cursos.alumno_id). \
                         filter(Cursos.id == code).all():
                     print(an_alumno.lastname, an_alumno.firstname)
-                    print(a_prg.code_curso) # Esto lo puedo mejorar mucho
+                    print(a_prg.code_curso)  # Esto lo puedo mejorar mucho
 
     def consultar_profesor(self):
         v_codigo = input("\nIndique la identificación del profesor: ")
@@ -357,7 +373,7 @@ class MenuConsulta:
             print('\nProfesor no se encuentra asignado a ningún programa')
         else:
             code = x.id
-            #for an_profesor, a_prg in session.query(Profesor, Curso). \
+            # for an_profesor, a_prg in session.query(Profesor, Curso). \
             #        filter(Profesor.id == Curso.profesor_id). \
             #        filter(Curso.id == code).all():
             #    print(an_alumno.lastname, an_alumno.firstname)
