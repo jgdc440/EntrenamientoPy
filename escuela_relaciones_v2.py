@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Desarrollado por Jose G. Duran C.
 # Interface básica
-# Condición de mejora: Absoluta - Puede mejorarse infinitamente
+# Condición de mejora: Absoluta
 # Septiembre 2020
 import sys
 from sqlalchemy import Column, Integer, String, Sequence, Table
@@ -43,6 +43,7 @@ class Alumno(Base):
     # Relación uno a uno con el alumno-curso
     r_curso = relationship("CursoAlumno", uselist=False, back_populates="r_alumno",
                            cascade="all, delete")
+
 
     def __rep__(self):
         return "{}{}".format(self.firstname, self.lastname)
@@ -355,14 +356,11 @@ class MenuConsulta:
             print('\nAlumno no está registrado en la base de datos')
         else:
             code = x.id
+            print(72 * "-")
+            print('ID:', x.code_personal, 'Alumno:', x.lastname, x.firstname)
+            print(72 * "-")
             y = session.query(CursoAlumno).filter_by(id=code).first()
-            if y is None:
-                print('\n', x.id, x.lastname, x.firstname)
-            else:
-                code = x.id
-                print(72 * "-")
-                print('ID:', x.code_personal, 'Alumno:', x.lastname, x.firstname)
-                print(72 * "-")
+            if y is not None:
                 for campo_1, campo_2 in session.query(Alumno, CursoAlumno). \
                     filter(Alumno.id == CursoAlumno.alumno_id).all():
                     # Acá debo buscar el curso en la tabla Cursos
@@ -376,18 +374,15 @@ class MenuConsulta:
     def consultar_profesor(self):
         v_codigo = input("\nIndique la identificación del profesor: ")
         x = session.query(Profesor).filter_by(code_personal=v_codigo).first()
-        if y is None:
+        if x is None:
             print('\nProfesor no se encuentra registrado en la base de datos')
         else:
             code = x.id
+            print(72 * "-")
+            print('ID:', x.code_personal, 'Profesor:', x.lastname, x.firstname)
+            print(72 * "-")
             y = session.query(ProfesorCurso).filter_by(id=code).first()
-            if y is None:
-                print('\n', x.id, x.lastname, x.firstname)
-            else:
-                code = x.id
-                print(72 * "-")
-                print('ID:', x.code_personal, 'Profesor:', x.lastname, x.firstname)
-                print(72 * "-")
+            if y is not None:
                 for campo_1, campo_2 in session.query(Profesor, ProfesorCurso). \
                         filter(Profesor.id == ProfesorCurso.profesor_id).all():
                     # Acá debo buscar el curso en la tabla Cursos
@@ -404,14 +399,11 @@ class MenuConsulta:
             print('\nEl curso', v_codigo, 'no se encuentra registrado en la base de datos')
         else:
             code = x.id
+            print(72 * "-")
+            print('ID:', x.code, 'Curso:', x.name, 'UC:', x.cpe)
+            print(72 * "-")
             y = session.query(HorarioCurso).filter(HorarioCurso.horarios.any(id=code)).all()
-            if y is None:
-                print('\n', x.id, x.name, x.cpe)
-            else:
-                code = x.id
-                print(72 * "-")
-                print('ID:', x.code, 'Curso:', x.name, 'UC:', x.cpe)
-                print(72 * "-")
+            if y is not None:
                 for campo_1 in session.query(HorarioCurso).\
                         filter(HorarioCurso.horarios.any(id=code)).all():
                     # Acá debo buscar el curso en la tabla Cursos
@@ -431,20 +423,25 @@ class MenuConsulta:
 class MenuElimina:
     def __init__(self):
         self.elecciones = {
-            "1": self.eliminar_alumno,
-            "2": self.eliminar_profesor,
-            "3": self.eliminar_curso,
-            "4": self.regresar
+            "1": self.desvincular_alumno_curso,
+            "2": self.desvincular_profesor_curso,
+            "3": self.desvincular_horario_curso,
+            "4": self.eliminar_alumno,
+            "5": self.eliminar_profesor,
+            "6": self.eliminar_curso,
+            "7": self.regresar
         }
 
     def mostrar_menu(self):
         print("""
-            Menu de Eliminación de Registros
-
-            1  Eliminar Alumno
-            2  Eliminar Profesor
-            3  Eliminar Curso
-            4  Regresar al Menu Anterior
+            Menu de Eliminación o Desvinculación
+            1  Desvicular Alumno - Curso
+            2  Desvincular Profesor - Curso
+            3  Desvincular Horario - Curso
+            4  Eliminar Alumno
+            5  Eliminar Profesor
+            6  Eliminar Curso
+            7  Regresar al Menu Anterior
             """)
 
     def run(self):
@@ -456,6 +453,31 @@ class MenuElimina:
                 accion()
             else:
                 print("{0} no es una elección válida".format(eleccion))
+
+    def desvincular_alumno_curso(self):
+        codigo_curso = input("\nIndique curso a desvicular: ")
+        x = session.query(Cursos).filter_by(code=codigo_curso).first()
+        if x is None:
+            print('\nCurso', codigo_curso, 'no existe en la base de datos')
+        else:
+            codigo_personal = input("\nIndique la identificación del alumno a desvincular del curso: ")
+            v_alumno = session.query(Alumno).filter_by(code_personal=codigo_personal).first()
+            if v_alumno is None:
+                print('\nAlumno', codigo_personal, 'no existe en la base de datos')
+            else:
+                v_curso = session.query(CursoAlumno).filter_by(code_curso=codigo_curso) \
+                    .filter_by(code_personal=codigo_personal).first()
+                session.delete(v_curso)
+                session.commit()
+                print('\nEl alumno: ', codigo_personal, 'ha sido desvinculado del curso: ', codigo_curso)
+
+
+    def desvincular_profesor_curso(self):
+        pass
+
+    def desvincular_horario_curso(self):
+        pass
+
 
     def eliminar_alumno(self):
         v_codigo = input("\nIndique la identificación del alumno que desea eliminar: ")
