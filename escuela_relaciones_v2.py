@@ -329,12 +329,12 @@ class MenuConsulta:
 
     def mostrar_menu(self):
         print("""
-            Menu de Consulta y Exportación de Alumnos
+            Menu de Consultas
 
-            1  Consultar Programa por Alumno 
-            2  Consultar Programa por Profesor
-            3  Consultar Programa por Curso
-            4  Exportar Alumno
+            1  Consultar Alumno 
+            2  Consultar Profesor
+            3  Consultar Curso
+            4  Exportar información
             5  Regresar al Menu Anterior
             """)
 
@@ -355,37 +355,71 @@ class MenuConsulta:
             print('\nAlumno no está registrado en la base de datos')
         else:
             code = x.id
-            x = session.query(Cursos).filter_by(id=code).first()
-            if x is None:
-                print('\nAlumno no se encuentra asignado a ningún programa')
+            y = session.query(CursoAlumno).filter_by(id=code).first()
+            if y is None:
+                print('\n', x.id, x.lastname, x.firstname)
             else:
                 code = x.id
-                for an_alumno, a_prg in session.query(Alumno, Cursos). \
-                        filter(Alumno.id == Cursos.alumno_id). \
-                        filter(Cursos.id == code).all():
-                    print(an_alumno.lastname, an_alumno.firstname)
-                    print(a_prg.code_curso)  # Esto lo puedo mejorar mucho
+                print(72 * "-")
+                print('ID:', x.code_personal, 'Alumno:', x.lastname, x.firstname)
+                print(72 * "-")
+                for campo_1, campo_2 in session.query(Alumno, CursoAlumno). \
+                    filter(Alumno.id == CursoAlumno.alumno_id).all():
+                    # Acá debo buscar el curso en la tabla Cursos
+                    codigo_curso = campo_2.code_curso
+                    v_curso = session.query(Cursos).filter_by(code=codigo_curso).first()
+                    # Luego imprimo los valores
+                    print(campo_2.code_curso, v_curso.name)
+                    # Este proceso puede ser optimizado mucho
+
 
     def consultar_profesor(self):
         v_codigo = input("\nIndique la identificación del profesor: ")
         x = session.query(Profesor).filter_by(code_personal=v_codigo).first()
-        if x is None:
-            print('\nProfesor no se encuentra asignado a ningún programa')
+        if y is None:
+            print('\nProfesor no se encuentra registrado en la base de datos')
         else:
             code = x.id
-            # for an_profesor, a_prg in session.query(Profesor, Curso). \
-            #        filter(Profesor.id == Curso.profesor_id). \
-            #        filter(Curso.id == code).all():
-            #    print(an_alumno.lastname, an_alumno.firstname)
-            #    print(a_prg.code_curso)  # Esto lo puedo mejorar mucho
+            y = session.query(ProfesorCurso).filter_by(id=code).first()
+            if y is None:
+                print('\n', x.id, x.lastname, x.firstname)
+            else:
+                code = x.id
+                print(72 * "-")
+                print('ID:', x.code_personal, 'Profesor:', x.lastname, x.firstname)
+                print(72 * "-")
+                for campo_1, campo_2 in session.query(Profesor, ProfesorCurso). \
+                        filter(Profesor.id == ProfesorCurso.profesor_id).all():
+                    # Acá debo buscar el curso en la tabla Cursos
+                    codigo_curso = campo_2.code_curso
+                    v_curso = session.query(Cursos).filter_by(code=codigo_curso).first()
+                    # Luego imprimo los valores
+                    print(campo_2.code_curso, v_curso.name)
+                    # Este proceso puede ser optimizado mucho
 
     def consultar_curso(self):
         v_codigo = input("\nIndique el código del curso a buscar: ")
-        x = session.query(Cursos).filter_by(subject_code=v_codigo).first()
+        x = session.query(Cursos).filter_by(code=v_codigo).first()
         if x is None:
-            print('\nEl código de curso no se ha asignado a ningún programa')
+            print('\nEl curso', v_codigo, 'no se encuentra registrado en la base de datos')
         else:
-            pass
+            code = x.id
+            y = session.query(HorarioCurso).filter(HorarioCurso.horarios.any(id=code)).all()
+            if y is None:
+                print('\n', x.id, x.name, x.cpe)
+            else:
+                code = x.id
+                print(72 * "-")
+                print('ID:', x.code, 'Curso:', x.name, 'UC:', x.cpe)
+                print(72 * "-")
+                for campo_1 in session.query(HorarioCurso).\
+                        filter(HorarioCurso.horarios.any(id=code)).all():
+                    # Acá debo buscar el curso en la tabla Cursos
+                    codigo_curso = campo_1.code_curso
+                    v_curso = session.query(Cursos).filter_by(code=codigo_curso).first()
+                    # Luego imprimo los valores
+                    print('Horario:', campo_1.id, 'Día:', campo_1.dia, 'Turno:', campo_1.turno)
+                    # Este proceso puede ser optimizado mucho
 
     def exportar_alumno(self):
         pass
@@ -427,7 +461,7 @@ class MenuElimina:
         v_codigo = input("\nIndique la identificación del alumno que desea eliminar: ")
         x = session.query(Alumno).filter_by(code_personal=v_codigo).first()
         if x == None:
-            print('\nAlumno no se encuentra registrado')
+            print('\nAlumno', v_codigo, 'no se encuentra registrado')
         else:
             print('\n Alumno:', x.firstname, x.lastname, 'Código:', x.id,
                   'ha sido eliminado en conjunto con sus relaciones')
@@ -438,7 +472,7 @@ class MenuElimina:
         v_codigo = input("\nIndique la identificación del profesor que desea eliminar: ")
         x = session.query(Profesor).filter_by(code_personal=v_codigo).first()
         if x == None:
-            print('\nProfesor no se encuentra registrado')
+            print('\nProfesor', v_codigo,'no se encuentra registrado')
         else:
             print('\n Profesor:', x.firstname, x.lastname, 'Código:', x.id,
                   'ha sido eliminado en conjunto con sus relaciones')
