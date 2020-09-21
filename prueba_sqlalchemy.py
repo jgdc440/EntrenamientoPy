@@ -5,7 +5,8 @@ from sqlalchemy import Column, Integer, String, Sequence
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.orm import aliased
 
-engine = create_engine('sqlite:///prueba_indices.db')
+#engine = create_engine('sqlite:///prueba_indices.db')
+engine = create_engine('sqlite:///:memory:')
 Base = declarative_base()
 
 
@@ -152,9 +153,6 @@ j_autor.books = [Book(isbn='9788498387087', title='Harry Potter y la Piedra Filo
 session.add(j_autor)
 session.commit()
 
-j_autor = session.query(Author).filter_by(firstname='Joanne').one()
-
-print("")
 print("Query #1")
 for an_author, a_book in session.query(Author, Book). \
         filter(Author.id == Book.author_id). \
@@ -193,10 +191,10 @@ for name in session.query(Author.firstname). \
         filter(Author.books.any(Author.lastname.like('%Row%'))):
     print(name)
 
-print("Query #10")
+print("Query #9")
 print(session.query(Book).filter(Book.author.has(Author.firstname == 'Joanne')).all())
 
-# Borrado de autor
+#Borrado de autor
 session.delete(j_autor)
 
 print(session.query(Author.firstname).filter_by(firstname='Joanne').count())
